@@ -14,6 +14,7 @@ from engine.models import (
     StorageRequirement
 )
 from engine.decision_engine import DecisionEngine
+from engine.presets import PRESET_PROFILES
 
 __all__ = [
     "SystemRequirements",
@@ -26,5 +27,7 @@ __all__ = [
     "AuthRequirement",
     "ProtocolRequirement",
     "StorageRequirement",
-    "DecisionEngine"
+    "DecisionEngine",
+    "PRESET_PROFILES"
 ]
+

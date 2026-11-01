@@ -178,3 +178,4 @@ Provides visual dropdowns, live cost recalculation, and one-click copyable deplo
 | **Fixed Budget VPS** | `web_app`, `flat_budget`, `predictable` | **AWS Lightsail** | **95.0** | Fixed $3.50–$5.00/mo flat fee with 1TB–2TB bandwidth |
 | **YouTube Scraper** | `scraper_worker`, `ultra_low`, `stateless` | **Local Production Tunnel** | **99.0** | Residential IP prevents YouTube bot detection and 429 blocks |
 | **Microservices Mesh** | `microservices`, `standard`, `managed_db` | **GCP GKE Autopilot** | **90.0** | Hands-off Kubernetes node management and auto-repair |
+

@@ -2,23 +2,37 @@
 
 Production deployment blueprints, automated decision system, architecture comparisons, and cost optimization guides for deploying containerized Python, Streamlit, FastAPI, and AI/ML applications across Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP).
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=anjanik366/deployment-strategies&branch=main&mainModule=app.py)
+
 ---
 
 ## 🧭 Automated Strategy Recommendation Engine
 
 This repository includes a multi-criteria decision engine that evaluates your application requirements (workload type, budget, traffic profile, GPU, enterprise SSO, and protocols) and returns tailored cloud deployment recommendations with cost estimates and copy-paste CLI commands.
 
-### Quickstart
+### 🌐 Deploy to Streamlit Community Cloud (1-Click)
+
+This repository is pre-configured with `requirements.txt`, `streamlit_app.py`, and `.streamlit/config.toml` for turnkey hosting on Streamlit Community Cloud.
+
+1. Click the badge above or navigate to:  
+   👉 **[Deploy to Streamlit Cloud](https://share.streamlit.io/deploy?repository=anjanik366/deployment-strategies&branch=main&mainModule=app.py)**
+2. Select repository: `anjanik366/deployment-strategies`, branch: `main`, and main file: `app.py`.
+3. Click **Deploy!** — your interactive strategy decision engine will be live with a permanent public URL.
+
+### 💻 Run Locally
 
 ```bash
-# 1. Interactive CLI Wizard
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Launch Streamlit Web UI
+streamlit run app.py
+
+# 3. Interactive CLI Wizard
 python recommend.py -i
 
-# 2. Command-Line Direct Query
+# 4. Command-Line Direct Query
 python recommend.py --app-name "YouTranscribe" --workload web_app --budget free_tier --protocol websocket
-
-# 3. Interactive Web Dashboard
-streamlit run app.py
 ```
 
 ---

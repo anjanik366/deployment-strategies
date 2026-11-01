@@ -75,3 +75,4 @@ class RecommendationResult(BaseModel):
     alternative_local_or_vps: Optional[DeploymentOption] = None
     architecture_decision_rationale: str
     action_checklist: List[str]
+

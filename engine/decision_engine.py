@@ -208,3 +208,4 @@ class DecisionEngine:
         if req.auth_requirement == AuthRequirement.MICROSOFT_ENTRA:
             checklist.insert(4, "Configure App Registration in Microsoft Entra ID and assign User/Group roles.")
         return checklist
+
