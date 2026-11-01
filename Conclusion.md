@@ -2,7 +2,9 @@
 
 This document provides a comprehensive comparative evaluation of **Amazon Web Services (AWS)**, **Microsoft Azure**, and **Google Cloud Platform (GCP)** for deploying Python, Streamlit, FastAPI, and AI applications (such as *YouTranscribe*, *JARVIS*, *Ollama*, and *Reader*).
 
-For exhaustive platform-specific implementation guides, refer to:
+For exhaustive platform-specific implementation guides and tools, refer to:
+* ⚙️ **[`System_Architecture_and_Engine.md`](./System_Architecture_and_Engine.md)** — Decision engine specification, MCDA scoring algorithm, and schemas.
+* 🛠️ **[`Step_by_Step_Deployment_Guide.md`](./Step_by_Step_Deployment_Guide.md)** — Concrete step-by-step deploy commands and flowcharts for all strategies.
 * ☁️ **[`AWS_Deployment.md`](./AWS_Deployment.md)** — App Runner, ECS Fargate, EC2 CPU/GPU, Lightsail, and CI/CD.
 * 🔷 **[`Azure_Deployment.md`](./Azure_Deployment.md)** — Container Apps (ACA), App Service, NC-Series GPUs, and Entra ID.
 * 🇬 **[`GCP_Deployment.md`](./GCP_Deployment.md)** — Cloud Run, GCE L4/T4 GPUs, GCS FUSE volumes, and Cloud NAT.
