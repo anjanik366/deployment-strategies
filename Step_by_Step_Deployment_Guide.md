@@ -1,42 +1,40 @@
-# 🛠️ Step-by-Step Production Deployment Playbooks
+# 🛠️ Simple Step-by-Step Deployment Cookbook
 
-This guide provides concrete, copy-paste deployment playbooks for **every major strategy** evaluated by the Decision Engine. Each section contains an end-to-end architecture flowchart, prerequisites, build commands, production configurations, and health-check verification steps.
-
----
-
-## 📑 Table of Contents
-1. [Strategy 1: Google Cloud Run (Serverless Web App / Streamlit / API)](#strategy-1-google-cloud-run)
-2. [Strategy 2: AWS Lightsail (Predictable Flat-Fee VPS with Docker & SSL)](#strategy-2-aws-lightsail)
-3. [Strategy 3: Azure Container Apps (ACA) with Entra ID SSO](#strategy-3-azure-container-apps)
-4. [Strategy 4: AWS App Runner & ECS Fargate](#strategy-4-aws-app-runner--ecs-fargate)
-5. [Strategy 5: GCP Compute Engine G2 Dedicated GPU Host (Nvidia L4 24GB)](#strategy-5-gcp-compute-engine-g2-gpu-host)
-6. [Strategy 6: AWS EC2 G4dn Dedicated GPU Host (Nvidia T4 16GB)](#strategy-6-aws-ec2-g4dn-gpu-host)
-7. [Strategy 7: Local Edge Production & Residential Scraper (Zero-Cost)](#strategy-7-local-edge-production)
-8. [Strategy 8: Kubernetes on GCP GKE Autopilot & AWS EKS](#strategy-8-kubernetes-deployment)
+> **Don't panic!**  
+> You don't need to be a cloud wizard or have years of DevOps experience.  
+> Just find the strategy below that matches your project and follow the numbered steps. Each command is explained in simple, plain English.
 
 ---
 
-## Strategy 1: Google Cloud Run
+## 📑 Pick Your Recipe
 
-**Best for**: Free-tier MVPs, high-concurrency Streamlit apps, FastAPI, and scale-to-zero workloads.
+| Strategy | When to Use It | Cost |
+|---|---|---|
+| [**Recipe 1: Google Cloud Run**](#recipe-1-google-cloud-run-free-or-almost-free) | Your website, Streamlit app, or Python API | **$0.00 – $2.00 / mo** (Free Tier) |
+| [**Recipe 2: AWS Lightsail**](#recipe-2-aws-lightsail-fixed-budget-vps) | You want a fixed, predictable $3.50/mo bill | **$3.50 – $5.00 / mo flat** |
+| [**Recipe 3: Azure Container Apps**](#recipe-3-azure-container-apps-corporate-microsoft-login) | Company app with Microsoft 365 login | **$0.00 – $15.00 / mo** |
+| [**Recipe 4: AWS App Runner**](#recipe-4-aws-app-runner-hands-off-aws-containers) | Hands-off container hosting on AWS | **~$5.00 – $15.00 / mo** |
+| [**Recipe 5: Google Cloud AI GPU Host**](#recipe-5-google-cloud-ai-gpu-host-ollama--whisper) | Running your own heavy AI models (Ollama, Whisper) | **~$85.00 / mo** (Spot) |
+| [**Recipe 6: AWS EC2 GPU Host**](#recipe-6-aws-ec2-gpu-host-nvidia-t4) | Running AI models on AWS | **~$115.00 / mo** (Spot) |
+| [**Recipe 7: Run on Your Own PC (Local)**](#recipe-7-run-on-your-own-pc-100-free-with-tunnel) | 100% free scraping and personal testing | **$0.00 (Free forever)** |
 
-### 1.1 Architecture Flowchart
+---
+
+## Recipe 1: Google Cloud Run (Free or Almost Free)
+
+**Best for**: Streamlit apps, FastAPI, web dashboards, and hobby projects.
+
+### How It Works
 
 ```mermaid
 flowchart LR
-    Dev["Developer Code\n(Dockerfile + app.py)"] --> GCloud["gcloud CLI / Cloud Build"]
-    GCloud --> AR["Artifact Registry\n(Docker Image)"]
-    AR --> CR["Google Cloud Run\n(Scale-to-Zero, 1-1000 Concurrency)"]
-    CR --> GCS["Cloud Storage Bucket\n(Mounted via GCS FUSE)"]
-    CR --> NAT["Cloud NAT Gateway\n(Optional Static Egress IP)"]
-    User["Public Internet / User"] --> HTTPS["Google Global Edge LB\n(Automatic SSL)"]
-    HTTPS --> CR
+    YourPC["💻 Your Computer\n(Your code)"] -->|One Terminal Command| Google["☁️ Google Cloud Run\n(Packages app, gives you a secure https link)"]
+    Google --> Public["🌍 Public Internet\n(Anyone can visit)"]
 ```
 
-### 1.2 Step-by-Step Execution
+### Step 1: Make sure you have a `Dockerfile`
+A `Dockerfile` is just a recipe card telling the cloud how to run your Python app. Create a file named `Dockerfile` in your project folder with this content:
 
-#### Step 1: Prepare the Dockerfile
-Ensure your Dockerfile binds to the `$PORT` environment variable provided by Cloud Run:
 ```dockerfile
 FROM python:3.11-slim
 WORKDIR /app
@@ -48,501 +46,211 @@ EXPOSE 8501
 CMD exec streamlit run app.py --server.port=${PORT} --server.address=0.0.0.0 --server.headless=true
 ```
 
-#### Step 2: Authenticate and Enable APIs
+### Step 2: Log into Google Cloud
+Open your terminal and type:
 ```bash
-# 1. Login to Google Cloud
+# 1. Log in with your Google account
 gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
 
-# 2. Enable necessary GCP APIs
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+# 2. Select your Google project
+gcloud config set project YOUR_PROJECT_ID
 ```
 
-#### Step 3: Deploy Directly from Source
-Cloud Run builds and packages the container automatically:
+### Step 3: Launch with One Single Command!
+Run this command from your project folder:
 ```bash
-gcloud run deploy youtranscribe \
+gcloud run deploy my-app \
   --source . \
   --region us-central1 \
-  --platform managed \
   --allow-unauthenticated \
   --port 8501 \
-  --memory 1Gi \
-  --cpu 1 \
-  --concurrency 80 \
-  --timeout 3600 \
-  --min-instances 0 \
-  --max-instances 5
+  --timeout 3600
 ```
-> [!TIP]
-> The `--timeout 3600` flag is critical for Streamlit and real-time streaming, allowing WebSocket connections to remain open for up to 1 hour without dropping.
 
-#### Step 4: Map Custom Domain (Optional)
-```bash
-gcloud beta run domain-mappings create \
-  --service youtranscribe \
-  --domain app.yourdomain.com \
-  --region us-central1
-```
+**What each setting means:**
+* `--source .`: Use the code in this folder.
+* `--region us-central1`: Run in Google's central US data center.
+* `--allow-unauthenticated`: Let anyone with the link view the site without a Google login.
+* `--port 8501`: Streamlit's default port.
+* `--timeout 3600`: Keeps live streaming and chat connections open for up to 1 hour without dropping.
+
+**How do I know it worked?**  
+Google will print a link like `https://my-app-xxxxxx.a.run.app`. Click it, and your app is live!
 
 ---
 
-## Strategy 2: AWS Lightsail
+## Recipe 2: AWS Lightsail (Fixed Budget VPS)
 
-**Best for**: Predictable $3.50–$5.00/mo budget, continuous background workers, and static IPv4 egress.
+**Best for**: When you want a fixed $3.50/month bill with zero surprises.
 
-### 2.1 Architecture Flowchart
-
-```mermaid
-flowchart TD
-    subgraph Lightsail["AWS Lightsail Instance ($3.50 - $5.00 / month)"]
-        FW["Lightsail Firewall (Ports 80, 443, 22)"]
-        Nginx["Nginx Reverse Proxy + Let's Encrypt SSL"]
-        Docker["Docker Engine & Compose Daemon"]
-        App["App Container (Streamlit :8501)"]
-        Vol["Local Persistent Volume (/data)"]
-        
-        FW --> Nginx
-        Nginx -- "Proxy Pass with WebSocket Upgrade" --> App
-        App --> Vol
-    end
-    User["End User HTTPS Request"] --> FW
-```
-
-### 2.2 Step-by-Step Execution
-
-#### Step 1: Provision the Lightsail Instance
-```bash
-aws lightsail create-instances \
-  --instance-names app-vps \
-  --availability-zone us-east-1a \
-  --blueprint-id ubuntu_22_04 \
-  --bundle-id nano_2_0
-```
-
-#### Step 2: Attach a Static Public IPv4 Address
-```bash
-# Allocate static IP
-aws lightsail allocate-static-ip --static-ip-name app-static-ip
-
-# Attach to instance
-aws lightsail attach-static-ip --static-ip-name app-static-ip --instance-name app-vps
-
-# Open Ports 80 and 443 in Firewall
-aws lightsail open-instance-ports --instance-name app-vps --port-info fromPort=80,toPort=80,protocol=TCP
-aws lightsail open-instance-ports --instance-name app-vps --port-info fromPort=443,toPort=443,protocol=TCP
-```
-
-#### Step 3: Setup Docker & Docker Compose on Instance
-SSH into the instance and configure Docker:
-```bash
-ssh ubuntu@YOUR_STATIC_IP
-
-# Install Docker & Compose
-sudo apt-get update && sudo apt-get install -y docker.io docker-compose-v2
-sudo usermod -aG docker ubuntu
-```
-
-#### Step 4: Deploy `docker-compose.yml` with Nginx SSL
-Create `docker-compose.yml`:
-```yaml
-version: '3.8'
-services:
-  app:
-    image: python:3.11-slim
-    restart: always
-    working_dir: /app
-    volumes:
-      - .:/app
-    command: python -m streamlit run app.py --server.port 8501 --server.address 127.0.0.1
-    network_mode: "host"
-
-  nginx:
-    image: nginx:alpine
-    restart: always
-    network_mode: "host"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-```
-
-Configure `nginx.conf` for WebSocket streaming:
-```nginx
-server {
-    listen 80;
-    server_name app.yourdomain.com;
-    return 301 https://$host$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    server_name app.yourdomain.com;
-    ssl_certificate /etc/letsencrypt/live/app.yourdomain.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/app.yourdomain.com/privkey.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8501;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_read_timeout 86400;
-    }
-}
-```
-
----
-
-## Strategy 3: Azure Container Apps
-
-**Best for**: Enterprise corporate SaaS, Microsoft 365 integration, and native Entra ID (Azure AD) SSO.
-
-### 3.1 Architecture Flowchart
+### How It Works
 
 ```mermaid
 flowchart LR
-    User["Corporate User (Browser)"] --> Front["Azure Ingress Envoy"]
-    Front --> EasyAuth["Built-in Easy-Auth Reverse Proxy\n(Validates Entra ID JWT Token)"]
-    EasyAuth -- "Authenticated Header Injection" --> ACA["Container App Pod\n(Streamlit / FastAPI)"]
-    ACA --> AzureFiles["Azure Files Storage Account\n(Persistent SMB Mount)"]
-    Entra["Microsoft Entra ID (Azure AD)"] -. "OIDC Authentication" .-> EasyAuth
+    User["👤 Visitor"] --> Firewall["🛡️ AWS Lightsail\n($3.50/month fixed)"]
+    Firewall --> App["🐍 Your Python App\n(Always running 24/7)"]
 ```
 
-### 3.2 Step-by-Step Execution
+### Step 1: Create the Server in AWS Console
+1. Go to [lightsail.aws.amazon.com](https://lightsail.aws.amazon.com/).
+2. Click **Create instance**.
+3. Choose **Linux/Unix** -> **OS Only** -> **Ubuntu 22.04 LTS**.
+4. Choose the **$3.50/month** plan.
+5. Click **Create instance**.
 
-#### Step 1: Create Resource Group and Container Registry
+### Step 2: Connect to the Server
+Wait 1 minute, then click the small orange terminal button `>_` next to your new server. A terminal opens in your browser!
+
+### Step 3: Install Docker and Run Your App
+Copy and paste these commands into that terminal:
 ```bash
-# 1. Login
+# 1. Install Docker
+sudo apt update && sudo apt install -y docker.io git
+
+# 2. Download your app code from GitHub
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO
+
+# 3. Build and run your app on port 80 (standard web port)
+sudo docker build -t my-app .
+sudo docker run -d -p 80:8501 --restart always my-app
+```
+
+**How do I know it worked?**  
+Copy your server's public IP address from the Lightsail dashboard and paste it into your browser. Your app will load!
+
+---
+
+## Recipe 3: Azure Container Apps (Corporate Microsoft Login)
+
+**Best for**: Apps for your company where employees log in using their work Microsoft accounts.
+
+### How It Works
+
+```mermaid
+flowchart LR
+    Employee["👤 Employee"] --> Login["🔐 Microsoft Login Wall\n(Signs in with work email)"]
+    Login --> AzureApp["🔷 Azure Container App\n(Opens your Streamlit tool)"]
+```
+
+### Step 1: Log in with Azure CLI
+Open your terminal:
+```bash
 az login
-az account set --subscription "YOUR_SUBSCRIPTION_ID"
-
-# 2. Create Resource Group & ACR
-az group create --name my-enterprise-rg --location eastus
-az acr create --resource-group my-enterprise-rg --name myacrregistry --sku Basic --admin-enabled true
 ```
 
-#### Step 2: Build Image directly in ACR
+### Step 2: Deploy Your Container
 ```bash
-az acr build --registry myacrregistry --image enterprise-app:v1 .
-```
-
-#### Step 3: Create Container Apps Environment & App
-```bash
-# 1. Create ACA Environment
-az containerapp env create \
-  --name my-aca-env \
-  --resource-group my-enterprise-rg \
-  --location eastus
-
-# 2. Deploy Container App
-az containerapp create \
-  --name enterprise-app \
-  --resource-group my-enterprise-rg \
-  --environment my-aca-env \
-  --image myacrregistry.azurecr.io/enterprise-app:v1 \
-  --target-port 8501 \
+az containerapp up \
+  --name company-app \
+  --resource-group my-company-rg \
+  --location eastus \
+  --source . \
   --ingress external \
-  --min-replicas 0 \
-  --max-replicas 5 \
-  --cpu 0.5 \
-  --memory 1.0Gi
+  --target-port 8501
 ```
 
-#### Step 4: Enable Entra ID (Azure AD) Easy-Auth
-Enable zero-code authentication proxy without editing your source code:
+### Step 3: Turn on One-Click Microsoft Login (Zero Coding Required!)
+To make sure only your company's employees can visit the link, run:
 ```bash
 az containerapp auth microsoft update \
-  --name enterprise-app \
-  --resource-group my-enterprise-rg \
-  --client-id "YOUR_AZURE_AD_APP_CLIENT_ID" \
-  --client-secret "YOUR_CLIENT_SECRET" \
+  --name company-app \
+  --resource-group my-company-rg \
+  --client-id "YOUR_AZURE_CLIENT_ID" \
+  --client-secret "YOUR_SECRET" \
   --tenant-id "YOUR_TENANT_ID" \
   --action RedirectToLoginPage
 ```
 
+Now, anyone who visits the site must sign in with their authorized company Microsoft account!
+
 ---
 
-## Strategy 4: AWS App Runner & ECS Fargate
+## Recipe 4: AWS App Runner (Hands-Off AWS Containers)
 
-**Best for**: Fully-managed AWS native container hosting with IAM role bindings.
+**Best for**: Teams that want AWS to automatically build and run their container without managing servers.
 
-### 4.1 Architecture Flowchart
-
-```mermaid
-flowchart TD
-    Git["GitHub Repo / ECR"] --> AR["AWS App Runner Service"]
-    AR --> VPC["AWS VPC Connector (Optional)"]
-    VPC --> S3["Amazon S3 / DynamoDB / Bedrock"]
-    AR --> CloudWatch["CloudWatch Logs & Metrics"]
-    User["End User"] --> AR
-```
-
-### 4.2 Step-by-Step Execution
-
-#### Step 1: Authenticate and Push Image to AWS ECR
+### Step 1: Push Your Code to Amazon ECR (Container Storage)
 ```bash
-# 1. Create ECR repository
-aws ecr create-repository --repository-name my-aws-app --region us-east-1
+# 1. Create a container repository
+aws ecr create-repository --repository-name my-app --region us-east-1
 
-# 2. Login Docker to ECR
+# 2. Log in and push your container image
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
-
-# 3. Tag and push
-docker tag my-app:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-aws-app:latest
-docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-aws-app:latest
+docker build -t my-app .
+docker tag my-app:latest YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-app:latest
+docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-app:latest
 ```
 
-#### Step 2: Deploy App Runner Service via CLI
-```bash
-aws apprunner create-service \
-  --service-name my-aws-app \
-  --source-configuration '{
-    "ImageRepository": {
-      "ImageIdentifier": "YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/my-aws-app:latest",
-      "ImageConfiguration": {
-        "Port": "8501",
-        "RuntimeEnvironmentVariables": [
-          {"Name": "STREAMLIT_SERVER_PORT", "Value": "8501"}
-        ]
-      },
-      "ImageRepositoryType": "ECR"
-    },
-    "AutoDeploymentsEnabled": true
-  }' \
-  --instance-configuration '{"Cpu": "1 vCPU", "Memory": "2 GB"}'
-```
+### Step 2: Create the App Runner Service
+Open the AWS Console, search for **App Runner**, click **Create service**, choose your container from ECR, set port to `8501`, and click **Create**. AWS handles everything else!
 
 ---
 
-## Strategy 5: GCP Compute Engine G2 GPU Host
+## Recipe 5: Google Cloud AI GPU Host (Ollama / Whisper)
 
-**Best for**: On-premise style dedicated LLMs (Ollama, Whisper Large, vLLM, PyTorch) with 24GB VRAM.
+**Best for**: Running heavy private AI models (like Llama 3 or Whisper transcription) on a 24GB Nvidia graphics card.
 
-### 5.1 Architecture Flowchart
-
-```mermaid
-flowchart TD
-    subgraph G2Instance["GCP Compute Engine: g2-standard-4 (Spot VM ~$85/mo)"]
-        GPU["Nvidia L4 GPU (24GB VRAM Ada Lovelace)"]
-        Drivers["CUDA 12.2 Drivers & Nvidia Container Toolkit"]
-        Ollama["Ollama Daemon / vLLM (Port 11434)"]
-        Streamlit["App UI (Port 8501)"]
-        Disk["100GB Balanced Persistent Disk (/root/.ollama)"]
-
-        Drivers --> GPU
-        Ollama --> GPU
-        Streamlit --> Ollama
-        Ollama --> Disk
-    end
-    User["Remote User / API"] --> Streamlit
-```
-
-### 5.2 Step-by-Step Execution
-
-#### Step 1: Provision Spot VM with Nvidia L4 GPU
+### Step 1: Create a Spot GPU Computer (80% Discount)
 ```bash
-gcloud compute instances create ai-gpu-host \
+gcloud compute instances create ai-gpu-server \
   --zone us-central1-a \
   --machine-type g2-standard-4 \
   --accelerator type=nvidia-l4,count=1 \
   --image-family common-cu121-debian-11-py310 \
   --image-project deeplearning-platform-release \
   --boot-disk-size 100GB \
-  --boot-disk-type pd-balanced \
-  --maintenance-policy TERMINATE \
   --provisioning-model SPOT
 ```
 
-#### Step 2: SSH and Verify Nvidia Hardware
+### Step 2: Connect and Install Ollama
 ```bash
-gcloud compute ssh ai-gpu-host --zone us-central1-a
+# 1. Connect to your server
+gcloud compute ssh ai-gpu-server --zone us-central1-a
 
-# Verify GPU is active
+# 2. Verify your Nvidia GPU is working
 nvidia-smi
-```
-*(You will see `NVIDIA L4` with 23034MiB VRAM).*
 
-#### Step 3: Install and Service-Wrap Ollama
-```bash
-# Install Ollama
+# 3. Install Ollama and download an AI model
 curl -fsSL https://ollama.com/install.sh | sh
-
-# Pre-download required AI models
-ollama run llama3.1:8b-instruct-q4_K_M ""
-ollama pull whisper:large-v3
+ollama run llama3.1:8b ""
 ```
 
-#### Step 4: Configure Systemd Auto-Start
-Ensure the app restarts automatically if the Spot VM is preempted and restarted:
-```bash
-sudo tee /etc/systemd/system/ai-app.service > /dev/null <<EOF
-[Unit]
-Description=AI Application Service
-After=network.target ollama.service
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/app
-ExecStart=/usr/bin/python3 -m streamlit run app.py --server.port 8501 --server.address 0.0.0.0
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable --now ai-app.service
-```
+Your server is now running a powerful private AI brain that your apps can talk to!
 
 ---
 
-## Strategy 6: AWS EC2 G4dn GPU Host
+## Recipe 6: AWS EC2 GPU Host (Nvidia T4)
 
-**Best for**: CUDA workloads, Whisper, and moderate deep learning models requiring Nvidia T4 (16GB VRAM).
+**Best for**: Running AI models on AWS when your company already uses Amazon infrastructure.
 
-### 6.1 Step-by-Step Execution
-
-#### Step 1: Launch EC2 Spot Instance with Deep Learning AMI
-```bash
-aws ec2 run-instances \
-  --image-id ami-07b9a52762a4208a0 \
-  --instance-type g4dn.xlarge \
-  --instance-market-options '{"MarketType":"spot","SpotOptions":{"SpotInstanceType":"persistent"}}' \
-  --key-name my-key \
-  --security-group-ids sg-xxxxxx \
-  --block-device-mappings '[{"DeviceName":"/dev/sda1","Ebs":{"VolumeSize":100,"VolumeType":"gp3"}}]'
-```
-
-#### Step 2: Run GPU Containers with Nvidia Toolkit
-```bash
-docker run --gpus all -d \
-  -p 8501:8501 \
-  -v $(pwd):/app \
-  --restart always \
-  pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime \
-  python /app/app.py
-```
+### Step 1: Launch an EC2 Spot GPU Server
+In the AWS EC2 Console:
+1. Click **Launch instance**.
+2. Select **Ubuntu 22.04 LTS**.
+3. Choose instance type: `g4dn.xlarge` (includes an Nvidia T4 graphics card).
+4. Under Advanced Details, check **Request Spot Instances** for a major discount.
+5. Launch and connect via SSH!
 
 ---
 
-## Strategy 7: Local Edge Production
+## Recipe 7: Run on Your Own PC (100% Free with Tunnel)
 
-**Best for**: $0.00 cost, scraping protected targets (YouTube, Cloudflare-guarded APIs), and utilizing local RTX GPUs.
+**Best for**: When you want to spend **$0.00**, or when scraping websites like YouTube that block cloud servers.
 
-### 7.1 Architecture Flowchart
-
-```mermaid
-flowchart LR
-    subgraph LocalHost["Local Windows/Linux Machine (Home/Office)"]
-        ISP["Residential ISP IP (100% immune to datacenter blocks)"]
-        LocalApp["App (Streamlit / FastApi on :8501)"]
-        TunnelClient["Cloudflare Tunnel / Localtunnel Client"]
-        
-        LocalApp --> ISP
-        LocalApp <--> TunnelClient
-    end
-    
-    CloudEdge["Cloudflare Edge Network / Localtunnel Proxy"] <--> TunnelClient
-    User["Public Internet Client"] --> CloudEdge
-```
-
-### 7.2 Step-by-Step Execution
-
-#### Step 1: Run Locally with Secure Tunneling
-Use the unified local script:
+### Step 1: Launch with the Included Helper
+Go to your project folder on your computer and double-click:
 ```cmd
 run.bat
 ```
-Select **Option 2** (*Run App + Start HTTPS Public Tunnel*).
-
-#### Step 2: Production Setup with Cloudflare Named Tunnel (Zero Trust)
-For enterprise-grade edge stability with your own domain name:
-```bash
-# 1. Install cloudflared
-winget install --id Cloudflare.cloudflared
-
-# 2. Authenticate
-cloudflared tunnel login
-
-# 3. Create persistent tunnel
-cloudflared tunnel create my-app-tunnel
-
-# 4. Route traffic to local port 8501
-cloudflared tunnel route dns my-app-tunnel transcribe.yourdomain.com
-cloudflared tunnel run --url http://localhost:8501 my-app-tunnel
-```
+* Select **Option 1** if you just want to use the app yourself on `http://localhost:8501`.
+* Select **Option 2** if you want to share a secure public `https://` link with a friend or colleague over the internet!
 
 ---
 
-## Strategy 8: Kubernetes Deployment
+## 🎯 Final Quick Checklist
 
-**Best for**: Multi-microservice architectures, automated blue/green deployments, and Kubernetes-standard organizations.
-
-### 8.1 Architecture Flowchart
-
-```mermaid
-flowchart TD
-    Ingress["Cloud Ingress / ALB Controller"] --> Svc["Kubernetes ClusterIP Service"]
-    Svc --> Pod1["Pod Replica 1 (:8501)"]
-    Svc --> Pod2["Pod Replica 2 (:8501)"]
-    HPA["Horizontal Pod Autoscaler (CPU > 70%)"] -.-> Pod1
-    HPA -.-> Pod2
-```
-
-### 8.2 Kubernetes Manifest (`deployment.yaml`)
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cloud-app
-  labels:
-    app: cloud-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: cloud-app
-  template:
-    metadata:
-      labels:
-        app: cloud-app
-    spec:
-      containers:
-      - name: web
-        image: gcr.io/YOUR_PROJECT/cloud-app:latest
-        ports:
-        - containerPort: 8501
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "1000m"
-            memory: "1024Mi"
-        readinessProbe:
-          httpGet:
-            path: /_stcore/health
-            port: 8501
-          initialDelaySeconds: 5
-          periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: cloud-app-service
-spec:
-  type: ClusterIP
-  selector:
-    app: cloud-app
-  ports:
-  - port: 80
-    targetPort: 8501
-```
-
-Apply to cluster:
-```bash
-kubectl apply -f deployment.yaml
-```
-
+Before calling your deployment complete:
+- [ ] Did you test your app link on your smartphone or an incognito tab?
+- [ ] Did you set up a **$5 or $10 billing alert** in your cloud account?
+- [ ] If using Cloud Run or Azure, is **scale-to-zero** enabled so you pay nothing when idle?
